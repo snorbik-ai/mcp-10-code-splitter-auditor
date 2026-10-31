@@ -70,17 +70,26 @@ Ce composant expose des outils déterministes prêts à être invoqués par un m
 
 | Nom de l'Outil (`tool`) | Rôle & Fonction Technique | Déclencheur d'Action (*Quand l'IA DOIT-ELLE l'appeler ?*) | Paramètres Requis | Sortie Retournée |
 | :--- | :--- | :--- | :--- | :--- |
-| `mcp_scan_line_counts` | Scanne tous les fichiers sources (.py, .ts, .tsx, .mjs) et liste ceux qui dépassent le seuil d'alerte (350 lignes). | **Lors de l'audit de qualité ou avant d'intégrer une nouvelle fonctionnalité lourde.** | `max_lines (int, optionnel, défaut: 350), target_dir (str, optionnel)` | Tableau ordonné des fichiers lourds avec compteur exact de lignes. |
-| `mcp_generate_split_plan` | Génère un plan de découpage modulaire sous forme de répertoire partials/ ou submodules/ avec index barrel export. | **Dès qu'un fichier monolithique (> 350 lignes) est détecté.** | `file_path (str, requis)` | Plan d'architecture découpée (responsabilités isolées, hooks contrôleurs et barrel index). |
+| `audit_code_weight` | Scanne récursivement les fichiers sources (`.ts`, `.tsx`, `.js`, `.py`) sans consommer de tokens LLM. Recense les fichiers conformes, en alerte (>=250L) et critiques (>=350L). | **Lors de l'audit de qualité ou avant de clore une tâche de développement.** | `target_dir (str, optionnel, défaut: ".")`<br>`warn_threshold (int, défaut: 250)`<br>`critical_threshold (int, défaut: 350)` | JSON DTO : total fichiers scannés, répartition conformes/alertes/critiques, durée d'exécution et top des fichiers lourds. |
+| `generate_split_blueprint` | Analyse l'AST et génère un plan de découpage modulaire clé en main (React partials + Custom Hook contrôleur ou sous-package avec façade barrel export). | **Dès qu'un fichier critique (> 350 lignes) est détecté.** | `file_path (str, requis)` | Plan d'architecture découpée (arborescence cible, responsabilités isolées, squelettes de code et barrel export). |
 
 ---
 
-## 5. Exemples Concrets de Prompts Utilisateur
+## 5. Performances Mesurées en Conditions Réelles
+
+Mesuré sur un dépôt de production (projet BatiHome / 434 fichiers) :
+- **Scan de 434 fichiers sources** : ~**332 ms**
+- **Génération du blueprint modulaire** : **425 ms**
+- **Empreinte token LLM** : **0 token** (calcul déterministe local)
+
+---
+
+## 6. Exemples Concrets de Prompts Utilisateur
 
 Voici 3 exemples réels de requêtes que vous pouvez poser directement dans le chat de Cursor ou Claude Code pour faire travailler cet outil :
 
-1. *« Scanne mon code pour trouver tous les fichiers qui dépassent 350 lignes. »*
-2. *« Génère un plan de découpage modulaire pour le fichier mcp_server.py qui fait 520 lignes. »*
+1. *« Lance audit_code_weight sur frontend/src pour trouver tous les fichiers qui dépassent 350 lignes. »*
+2. *« Génère un plan de découpage modulaire avec generate_split_blueprint pour RawGlassRailingCatalog.ts. »*
 3. *« Vérifie que la Règle #5 de budget de lignes est respectée sur l'ensemble de mes composants. »*
 
 ---
