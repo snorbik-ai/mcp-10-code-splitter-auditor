@@ -25,13 +25,18 @@
 
 ## 2. Guide d'Installation Multi-Clients
 
-### Option A : Installation via Coding Agent (Recommandée)
-Copiez-collez simplement ce prompt dans votre agent IA (Cursor, Claude Code, Windsurf, VS Code Copilot) :
+### Option A : Install with your AI Coding Agent (Recommandée)
+Copiez-collez ce prompt prêt à l'emploi dans votre agent IA (Cursor, Claude Code, Windsurf, VS Code Copilot) :
 
-> « Configure le serveur MCP depuis ce dépôt :
-> 1. Détecte mon client actif (Cursor, Claude Code ou VS Code).
-> 2. Lance `python install.py` (ou `python install.py --client cursor|vscode|claude`) pour enregistrer le serveur sans écraser mes autres outils.
-> 3. Vérifie que le serveur répond en appelant l'outil `audit_code_weight` et confirme-moi le résultat du scan. »
+```text
+Tu es mon ingénieur d'intégration. Configure le serveur MCP depuis ce dépôt :
+1. Identifie le client MCP réellement actif dans notre session (Cursor, VS Code, Claude Code ou Claude Desktop).
+2. Lis les instructions du README et sélectionne l'argument approprié pour l'installation (--client cursor, --client vscode, --client claude ou --client all).
+3. Lance `python install.py --client <client_choisi>` et vérifie le code retour d'exécution.
+4. Si nécessaire, rappelle-moi de recharger la fenêtre de mon client (Developer: Reload Window).
+5. Vérifie que le serveur répond correctement en appelant l'outil `audit_code_weight` et confirme-moi le résultat du scan.
+6. Rapporte-moi clairement le résultat du test et signale toute erreur éventuelle sans la masquer.
+```
 
 ---
 
@@ -119,7 +124,7 @@ Voici 3 exemples réels de requêtes que vous pouvez poser directement dans le c
 
 ---
 
-## 🛡️ Propriété Intellectuelle & Sécurité
+## 🛡️ Licence & Contribution
 - **Éditeur :** SNORBIK AI © 2026.
-- **Classification :** Conforme à la Directive Maîtresse V14.1 (Recettes d'architecture sanctuarisées dans le Pôle 06).
-- **Zéro Régression :** Respect strict des budgets de lignes et des normes de sécurité.
+- **Licence :** Open-Source sous licence MIT (libre pour projets commerciaux et open-source).
+- **Spécification :** Conforme aux standards officiels MCP (Model Context Protocol).
