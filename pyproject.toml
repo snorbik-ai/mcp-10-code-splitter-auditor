@@ -1,18 +1,21 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "code-splitter-auditor"
+name = "mcp-10-code-splitter-auditor"
 version = "1.0.0"
-description = "Outil MCP Interne #10 : Auditeur de poids de code et générateur de plans de découpage modulaire"
-authors = [{ name = "Snorbik AI Engineering Team" }]
+description = "L'auditeur de budget de lignes qui traque les fichiers de plus de 350 lignes et génère des plans de découpage modulaires automatiques en sous-packages propres."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Proprietary / SNORBIK AI" }
+authors = [
+    { name = "Snorbik AI Engineering", email = "engineering@snorbik.ai" }
+]
 dependencies = [
-    "pydantic>=2.0.0",
+    "pydantic>=2.7.0",
+    "mcp>=1.0.0"
 ]
 
-[tool.pytest.ini_options]
-pythonpath = ["."]
-testpaths = ["tests"]
-python_files = ["test_*.py"]
-cache_dir = ".pytest_cache"
+[tool.setuptools]
+packages = { find = { where = ["."], exclude = ["tests*", "docs*"] } }
