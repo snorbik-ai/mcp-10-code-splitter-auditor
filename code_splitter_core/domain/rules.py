@@ -28,4 +28,11 @@ IGNORED_DIRECTORIES: Set[str] = {
     "dist_agents",
     "coverage",
     ".system_generated",
+    "_archive",
+    "archive",
+    "_archives",
+    "archives",
+    "99_ARCHIVES_HISTORIQUES",
+    "scratch",
+    "tmp",
 }

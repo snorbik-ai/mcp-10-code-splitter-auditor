@@ -7,9 +7,9 @@ _TOOL_ROOT = Path(__file__).resolve().parents[1]
 if str(_TOOL_ROOT) not in sys.path:
     sys.path.insert(0, str(_TOOL_ROOT))
 
-from core.domain.rules import DEFAULT_WARN_THRESHOLD, DEFAULT_CRITICAL_THRESHOLD
-from core.application.file_scanner import FileScannerService
-from core.application.blueprint_generator import BlueprintGeneratorService
+from code_splitter_core.domain.rules import DEFAULT_WARN_THRESHOLD, DEFAULT_CRITICAL_THRESHOLD
+from code_splitter_core.application.file_scanner import FileScannerService
+from code_splitter_core.application.blueprint_generator import BlueprintGeneratorService
 from canal_sdk_cli.sdk import CodeSplitterSDK
 from canal_mcp.mcp_server import handle_tool_call
 

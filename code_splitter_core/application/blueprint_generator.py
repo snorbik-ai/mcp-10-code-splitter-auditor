@@ -27,6 +27,10 @@ class BlueprintGeneratorService:
         if suffix == ".py":
             return self._generate_python_blueprint(target_path, content, total_lines)
         elif suffix in {".tsx", ".ts", ".jsx", ".js"}:
+            # Détection fine : React UI (JSX/TSX) vs Données pures / Catalogue (TS/JS sans balise)
+            has_jsx = bool(re.search(r"<[A-Z][A-Za-z0-9]*|import\s+.*React|className=", content)) or suffix in {".tsx", ".jsx"}
+            if not has_jsx and suffix in {".ts", ".js"}:
+                return self._generate_data_blueprint(target_path, content, total_lines)
             return self._generate_react_blueprint(target_path, content, total_lines)
         else:
             return self._generate_generic_blueprint(target_path, content, total_lines)
@@ -168,6 +172,59 @@ class BlueprintGeneratorService:
                 "Appliquer strictement l'Architecture en Puzzle (N2 Feature ou N3 Section).",
                 "Ne pas mettre d'état (useState/useEffect) dans les partials visuels : passer les props depuis le contrôleur.",
                 "L'orchestrateur principal doit faire moins de 100 lignes.",
+            ],
+        )
+
+
+    def _generate_data_blueprint(self, path: Path, content: str, total_lines: int) -> SplitPlan:
+        """Génère un plan de découpage pour un fichier de données / catalogue TypeScript/JS pur (sans JSX)."""
+        stem = path.stem
+        target_dir = str(path.parent / stem).replace("\\", "/")
+
+        sub_modules = [
+            SplitSubModule(
+                file_name="types.ts",
+                target_lines=max(40, min(120, total_lines // 5)),
+                responsibility="Modèles de données, interfaces TypeScript et types union du catalogue",
+                suggested_symbols=[f"{stem}Item", f"{stem}Category"],
+                skeleton_code=f'export interface {stem}Item {{\n  id: string;\n  sku: string;\n  name: string;\n  price: number;\n  attributes?: Record<string, any>;\n}}\n',
+            ),
+            SplitSubModule(
+                file_name="constants.ts",
+                target_lines=max(30, min(80, total_lines // 6)),
+                responsibility="Constantes, clés de filtrage, métadonnées et configurations",
+                suggested_symbols=["DEFAULT_CATALOG_CONFIG", "CATEGORIES"],
+                skeleton_code='export const DEFAULT_CATALOG_CONFIG = { active: true };\nexport const CATEGORIES = [] as const;\n',
+            ),
+            SplitSubModule(
+                file_name="items_collection.ts",
+                target_lines=max(80, min(220, total_lines // 2)),
+                responsibility="Données atomiques scindées en sous-collections de taille raisonnable (< 250 lignes)",
+                suggested_symbols=[f"{stem.lower()}_items"],
+                skeleton_code=f'import {{ {stem}Item }} from "./types";\n\nexport const {stem.lower()}_items: {stem}Item[] = [];\n',
+            ),
+        ]
+
+        barrel = (
+            f"// Point d'entrée unique du catalogue modulaire (Barrel Export)\n"
+            f'export * from "./types";\n'
+            f'export * from "./constants";\n'
+            f'export * from "./items_collection";\n'
+        )
+
+        return SplitPlan(
+            original_file=str(path).replace("\\", "/"),
+            relative_path=path.name,
+            total_lines=total_lines,
+            language="typescript_data",
+            pattern_type="DATA_MODULES_SPLIT",
+            target_directory=target_dir,
+            sub_modules=sub_modules,
+            barrel_export_skeleton=barrel,
+            guidance_notes=[
+                "Séparer les types et interfaces TypeScript dans 'types.ts'.",
+                "Découper la collection de données volumineuse en sous-fichiers catégoriels de moins de 250 lignes.",
+                "Conserver l'ancien fichier comme point d'entrée barrel export pour une compatibilité ascendante à 100%.",
             ],
         )
 

@@ -8,9 +8,9 @@ _TOOL_ROOT = Path(__file__).resolve().parents[1]
 if str(_TOOL_ROOT) not in sys.path:
     sys.path.insert(0, str(_TOOL_ROOT))
 
-from core.application.file_scanner import FileScannerService
-from core.application.blueprint_generator import BlueprintGeneratorService
-from core.domain.rules import (
+from code_splitter_core.application.file_scanner import FileScannerService
+from code_splitter_core.application.blueprint_generator import BlueprintGeneratorService
+from code_splitter_core.domain.rules import (
     DEFAULT_WARN_THRESHOLD,
     DEFAULT_CRITICAL_THRESHOLD,
     DEFAULT_EXTENSIONS,
