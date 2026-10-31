@@ -13,7 +13,7 @@ MIN_PYTHON = (3, 10)
 COMPONENT_NAME = "mcp-10-code-splitter-auditor"
 IS_NODE = False
 IS_SDK = False
-ENTRYPOINT_REL = "canal_mcp/mcp_classic_stdio/mcp_server.py"
+ENTRYPOINT_REL = "canal_mcp/mcp_server.py"
 
 def check_python_version():
     if sys.version_info < MIN_PYTHON:

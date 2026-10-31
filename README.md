@@ -54,7 +54,7 @@ Si vous préférez déclarer manuellement ce serveur dans votre fichier `.cursor
   "mcpServers": {
     "mcp-10-code-splitter-auditor": {
       "command": "python",
-      "args": ["canal_mcp/mcp_classic_stdio/mcp_server.py"],
+      "args": ["canal_mcp/mcp_server.py"],
       "env": { "PYTHONIOENCODING": "utf-8" },
       "type": "stdio"
     }
