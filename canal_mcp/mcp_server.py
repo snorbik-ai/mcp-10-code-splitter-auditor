@@ -21,11 +21,11 @@ TOOLS_METADATA = [
     {
         "name": "audit_code_weight",
         "description": (
-            "[AUDITEUR POIDS DE CODE OBLIGATOIRE] Surveillance continue de la Règle d'Architecture n°5. "
-            "DÉCLENCHEUR OBLIGATOIRE : 1) Dès qu'un fichier de code est modifié ou créé. "
-            "2) Obligatoirement avant tout commit ou fin de tâche pour recenser les fichiers en alerte (>250 lignes) et critiques (>350 lignes). "
-            "OPÉRATION : Scanne récursivement les lignes physiques sans consommation de tokens LLM. "
-            "SORTIE : Rapport d'audit classé avec total scanné, conformes, alertes, critiques et liste des fichiers lourds."
+            "Auditeur de budget de lignes de code. "
+            "Scanne récursivement les fichiers sources (.py, .ts, .tsx, .js, .jsx) sans consommer de tokens LLM. "
+            "Convention de classification : <= 250 lignes (CONFORME), 251 à 350 lignes (ALERTE / WARNING), "
+            "> 350 lignes (CRITIQUE / CRITICAL). "
+            "Retourne la liste ordonnée des fichiers lourds et les métriques de répartition."
         ),
         "inputSchema": {
             "type": "object",
@@ -50,10 +50,10 @@ TOOLS_METADATA = [
     {
         "name": "generate_split_blueprint",
         "description": (
-            "[GÉNÉRATEUR DE DÉCOUPAGE CLÉ EN MAIN] Assistant de refactorisation modulaire anti-fichiers lourds. "
-            "DÉCLENCHEUR OBLIGATOIRE : Dès qu'un fichier dépasse 250/350 lignes ou qu'une demande de modularisation/refactorisation est formulée. "
-            "OPÉRATION : Analyse l'AST et les symboles du fichier pour générer le plan exemplaire clé en main (React partials + useController ou sous-package Python avec façade barrel export). "
-            "SORTIE : Plan de découpage complet avec arborescence cible, liste des sous-modules et squelettes de code prêts à copier."
+            "Générateur de plan de découpage modulaire architectural (Blueprint). "
+            "Analyse syntaxique des déclarations de symboles (classes, fonctions, interfaces TypeScript, constantes) "
+            "pour proposer une architecture découpée respectant la séparation des responsabilités. "
+            "Produit l'arborescence cible, les sous-modules avec les symboles réels extraits et le barrel export."
         ),
         "inputSchema": {
             "type": "object",
@@ -88,7 +88,7 @@ def handle_tool_call(tool_name: str, arguments: Dict[str, Any]) -> Any:
 
 
 def run_stdio_server():
-    """Boucle principale JSON-RPC 2.0 sur stdin / stdout."""
+    """Boucle principale JSON-RPC 2.0 sur stdin / stdout conforme au protocole MCP officiel."""
     for line in sys.stdin:
         line = line.strip()
         if not line:
@@ -96,9 +96,25 @@ def run_stdio_server():
         try:
             req = json.loads(line)
             req_id = req.get("id")
-            method = req.get("method")
+            method = req.get("method", "")
 
-            if method == "tools/list":
+            # Notification JSON-RPC (sans id ou méthode notifications/*) : AUCUNE réponse autorisée par le protocole
+            if req_id is None or method.startswith("notifications/"):
+                continue
+
+            if method == "initialize":
+                resp = {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "result": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {"tools": {}},
+                        "serverInfo": {"name": "mcp-10-code-splitter-auditor", "version": "1.0.0"}
+                    }
+                }
+            elif method == "ping":
+                resp = {"jsonrpc": "2.0", "id": req_id, "result": {}}
+            elif method == "tools/list":
                 resp = {"jsonrpc": "2.0", "id": req_id, "result": {"tools": TOOLS_METADATA}}
             elif method == "tools/call":
                 params = req.get("params", {})
@@ -111,14 +127,15 @@ def run_stdio_server():
                     "result": {"content": [{"type": "text", "text": json.dumps(result, indent=2, ensure_ascii=False)}]}
                 }
             else:
-                resp = {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": "Method not found"}}
+                resp = {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": f"Method not found: {method}"}}
 
             sys.stdout.write(json.dumps(resp, ensure_ascii=False) + "\n")
             sys.stdout.flush()
         except Exception as e:
-            err_resp = {"jsonrpc": "2.0", "id": None, "error": {"code": -32603, "message": str(e)}}
-            sys.stdout.write(json.dumps(err_resp, ensure_ascii=False) + "\n")
-            sys.stdout.flush()
+            if req.get("id") is not None:
+                err_resp = {"jsonrpc": "2.0", "id": req.get("id"), "error": {"code": -32603, "message": str(e)}}
+                sys.stdout.write(json.dumps(err_resp, ensure_ascii=False) + "\n")
+                sys.stdout.flush()
 
 
 if __name__ == "__main__":

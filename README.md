@@ -70,17 +70,30 @@ Ce composant expose des outils déterministes prêts à être invoqués par un m
 
 | Nom de l'Outil (`tool`) | Rôle & Fonction Technique | Déclencheur d'Action (*Quand l'IA DOIT-ELLE l'appeler ?*) | Paramètres Requis | Sortie Retournée |
 | :--- | :--- | :--- | :--- | :--- |
-| `audit_code_weight` | Scanne récursivement les fichiers sources (`.ts`, `.tsx`, `.js`, `.py`) sans consommer de tokens LLM. Recense les fichiers conformes, en alerte (>=250L) et critiques (>=350L). | **Lors de l'audit de qualité ou avant de clore une tâche de développement.** | `target_dir (str, optionnel, défaut: ".")`<br>`warn_threshold (int, défaut: 250)`<br>`critical_threshold (int, défaut: 350)` | JSON DTO : total fichiers scannés, répartition conformes/alertes/critiques, durée d'exécution et top des fichiers lourds. |
-| `generate_split_blueprint` | Analyse l'AST et génère un plan de découpage modulaire clé en main (React partials + Custom Hook contrôleur ou sous-package avec façade barrel export). | **Dès qu'un fichier critique (> 350 lignes) est détecté.** | `file_path (str, requis)` | Plan d'architecture découpée (arborescence cible, responsabilités isolées, squelettes de code et barrel export). |
+| `audit_code_weight` | Scanne récursivement les fichiers sources (`.ts`, `.tsx`, `.js`, `.py`) sans consommer de tokens LLM.<br>Convention configurable :<br>• `<= 250 lignes` : Conforme<br>• `251 à 350 lignes` : Alerte (Warning)<br>• `> 350 lignes` : Critique | **Lors de l'audit de qualité ou avant de clore une tâche de développement.** | `target_dir (str, optionnel, défaut: ".")`<br>`warn_threshold (int, défaut: 250)`<br>`critical_threshold (int, défaut: 350)` | JSON DTO : total fichiers scannés, répartition conformes/alertes/critiques, durée d'exécution et top des fichiers lourds. |
+| `generate_split_blueprint` | Analyse syntaxique des déclarations et symboles (classes, fonctions, interfaces TypeScript, constantes) pour générer un plan de découpage modulaire exemplaire (React partials + Hook contrôleur ou modules de données avec barrel export). | **Dès qu'un fichier critique (> 350 lignes) est détecté.** | `file_path (str, requis)` | Plan d'architecture découpée (arborescence cible, symboles réels extraits, squelettes de code et barrel export). |
 
 ---
 
-## 5. Performances Mesurées en Conditions Réelles
+## 5. Performances & Périmètre Mesurés en Conditions Réelles
 
-Mesuré sur un dépôt de production (projet BatiHome / 434 fichiers) :
-- **Scan de 434 fichiers sources** : ~**332 ms**
-- **Génération du blueprint modulaire** : **425 ms**
-- **Empreinte token LLM** : **0 token** (calcul déterministe local)
+Mesuré sur le banc d'essai du dépôt e-commerce BatiHome (`frontend/src`) :
+- **Périmètre du projet audité** : **434 fichiers totaux**
+  - **76 fichiers** archivés sous `_archive` (exclus automatiquement par convention d'audit).
+  - **358 fichiers sources actifs** audités (`.ts`, `.tsx`).
+- **Temps de scan** : **6,2 s** au démarrage à froid, **~0,15 s** à chaud (moyenne de 5 scans répétés).
+- **Génération du blueprint modulaire** : **~425 ms** (avec extraction des vraies interfaces et constantes).
+- **Empreinte token LLM** : **0 token** (calcul déterministe local sans appel API externe).
+
+---
+
+## 6. Cycle de Vie Protocolaire MCP Standard
+
+Le serveur stdio implémente l'intégralité du cycle de vie MCP officiel (JSON-RPC 2.0) :
+- `initialize` (négociation des versions et des capacités `tools`).
+- `notifications/initialized` (accepté silencieusement sans réponse conformément à la norme).
+- `ping` (vérification de connectivité).
+- `tools/list` et `tools/call` (exécution déterministe).
 
 ---
 

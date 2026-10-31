@@ -9,7 +9,7 @@ class FileMetric(BaseModel):
     relative_path: str
     line_count: int
     language: str
-    status: str = Field(description="CONFORME, ALERTE (>250) ou CRITIQUE (>350)")
+    status: str = Field(description="CONFORME (<=250), ALERTE (251-350) ou CRITIQUE (>350)")
 
 
 class AuditReport(BaseModel):

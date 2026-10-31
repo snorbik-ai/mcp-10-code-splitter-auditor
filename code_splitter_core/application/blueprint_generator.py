@@ -26,12 +26,14 @@ class BlueprintGeneratorService:
 
         if suffix == ".py":
             return self._generate_python_blueprint(target_path, content, total_lines)
-        elif suffix in {".tsx", ".ts", ".jsx", ".js"}:
-            # Détection fine : React UI (JSX/TSX) vs Données pures / Catalogue (TS/JS sans balise)
-            has_jsx = bool(re.search(r"<[A-Z][A-Za-z0-9]*|import\s+.*React|className=", content)) or suffix in {".tsx", ".jsx"}
-            if not has_jsx and suffix in {".ts", ".js"}:
-                return self._generate_data_blueprint(target_path, content, total_lines)
+        elif suffix in {".tsx", ".jsx"}:
             return self._generate_react_blueprint(target_path, content, total_lines)
+        elif suffix in {".ts", ".js"}:
+            # Un fichier .ts / .js n'est un composant React UI QUE s'il importe explicitement React
+            is_react = bool(re.search(r"import\s+.*?from\s+[\"']react[\"']|import\s+React\b", content))
+            if is_react:
+                return self._generate_react_blueprint(target_path, content, total_lines)
+            return self._generate_data_blueprint(target_path, content, total_lines)
         else:
             return self._generate_generic_blueprint(target_path, content, total_lines)
 
@@ -181,35 +183,52 @@ class BlueprintGeneratorService:
         stem = path.stem
         target_dir = str(path.parent / stem).replace("\\", "/")
 
+        # Extraction syntaxique réelle des symboles et déclarations du fichier
+        interfaces = re.findall(r"(?:export\s+)?interface\s+([A-Za-z0-9_]+)", content)
+        types = re.findall(r"(?:export\s+)?type\s+([A-Za-z0-9_]+)\s*=", content)
+        constants = re.findall(r"export\s+const\s+([A-Za-z0-9_]+)\s*=", content)
+        
+        # Extraction du premier bloc complet d'interface TypeScript
+        interface_match = re.search(r"((?:export\s+)?interface\s+[A-Za-z0-9_]+[\s\S]*?\n\})", content)
+        types_skeleton = interface_match.group(1) if interface_match else f"export interface {stem}Item {{\n  id: string;\n  name: string;\n}}\n"
+        main_type = interfaces[0] if interfaces else f"{stem}Item"
+
+        # Répartition des constantes réelles entre constantes de configuration et collections volumineuses
+        small_constants = [c for c in constants if "PRODUCT" not in c and "ITEMS" not in c] or constants[:1]
+        large_constants = [c for c in constants if c not in small_constants] or constants[1:]
+
+        const_symbols = small_constants or ["DEFAULT_CONFIG"]
+        items_symbols = large_constants or [f"{stem.lower()}_items"]
+
         sub_modules = [
             SplitSubModule(
                 file_name="types.ts",
                 target_lines=max(40, min(120, total_lines // 5)),
-                responsibility="Modèles de données, interfaces TypeScript et types union du catalogue",
-                suggested_symbols=[f"{stem}Item", f"{stem}Category"],
-                skeleton_code=f'export interface {stem}Item {{\n  id: string;\n  sku: string;\n  name: string;\n  price: number;\n  attributes?: Record<string, any>;\n}}\n',
+                responsibility="Modèles de données, interfaces TypeScript et types union extraits du fichier",
+                suggested_symbols=interfaces + types or [main_type],
+                skeleton_code=f"// Types et interfaces extraits de {path.name}\n{types_skeleton}\n",
             ),
             SplitSubModule(
                 file_name="constants.ts",
                 target_lines=max(30, min(80, total_lines // 6)),
-                responsibility="Constantes, clés de filtrage, métadonnées et configurations",
-                suggested_symbols=["DEFAULT_CATALOG_CONFIG", "CATEGORIES"],
-                skeleton_code='export const DEFAULT_CATALOG_CONFIG = { active: true };\nexport const CATEGORIES = [] as const;\n',
+                responsibility="Constantes, clés de configuration, métadonnées et vignettes",
+                suggested_symbols=const_symbols,
+                skeleton_code=f"// Constantes et configurations extraites de {path.name}\n" + "\n".join(f"export const {c} = [];" for c in const_symbols[:3]) + "\n",
             ),
             SplitSubModule(
                 file_name="items_collection.ts",
                 target_lines=max(80, min(220, total_lines // 2)),
-                responsibility="Données atomiques scindées en sous-collections de taille raisonnable (< 250 lignes)",
-                suggested_symbols=[f"{stem.lower()}_items"],
-                skeleton_code=f'import {{ {stem}Item }} from "./types";\n\nexport const {stem.lower()}_items: {stem}Item[] = [];\n',
+                responsibility="Collections de données scindées en sous-fichiers atomiques (< 250 lignes)",
+                suggested_symbols=items_symbols,
+                skeleton_code=f'import {{ {main_type} }} from "./types";\n\n' + "\n".join(f"export const {c}: {main_type}[] = [];" for c in items_symbols[:2]) + "\n",
             ),
         ]
 
         barrel = (
             f"// Point d'entrée unique du catalogue modulaire (Barrel Export)\n"
-            f'export * from "./types";\n'
-            f'export * from "./constants";\n'
-            f'export * from "./items_collection";\n'
+            f'export type {{ {", ".join(interfaces + types or [main_type])} }} from "./types";\n'
+            f'export {{ {", ".join(const_symbols)} }} from "./constants";\n'
+            f'export {{ {", ".join(items_symbols)} }} from "./items_collection";\n'
         )
 
         return SplitPlan(
@@ -223,7 +242,7 @@ class BlueprintGeneratorService:
             barrel_export_skeleton=barrel,
             guidance_notes=[
                 "Séparer les types et interfaces TypeScript dans 'types.ts'.",
-                "Découper la collection de données volumineuse en sous-fichiers catégoriels de moins de 250 lignes.",
+                "Découper les grandes collections de données en sous-fichiers catégoriels de moins de 250 lignes.",
                 "Conserver l'ancien fichier comme point d'entrée barrel export pour une compatibilité ascendante à 100%.",
             ],
         )
