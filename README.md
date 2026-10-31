@@ -89,7 +89,7 @@ Ce composant expose des outils déterministes prêts à être invoqués par un m
 
 ## 5. Performances & Périmètre Mesurés en Conditions Réelles
 
-Mesuré sur le banc d'essai du dépôt e-commerce BatiHome (`frontend/src`) :
+Mesuré sur banc d'essai de production e-commerce représentatif (`frontend/src`) :
 - **Périmètre du projet audité** : **434 fichiers totaux**
   - **76 fichiers** archivés sous `_archive` (exclus automatiquement par convention d'audit).
   - **358 fichiers sources actifs** audités (`.ts`, `.tsx`).
