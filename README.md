@@ -154,3 +154,4 @@ Voici 3 exemples réels de requêtes que vous pouvez poser directement dans le c
 - **Éditeur :** SNORBIK AI © 2026.
 - **Licence :** Open-Source sous licence MIT (libre pour projets commerciaux et open-source).
 - **Spécification :** Conforme aux standards officiels MCP (Model Context Protocol).
+- **Statut Public :** Certifié conforme V25 (Zéro référence interne, benchmarks locaux validés).
