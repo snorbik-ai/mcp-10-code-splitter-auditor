@@ -4,20 +4,22 @@
 [![Protocol](https://img.shields.io/badge/MCP_Protocol-2025--11--25-blue.svg)](#)
 [![Architecture](https://img.shields.io/badge/Architecture-Hybride_Tri--Canal-teal.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](#)
-[![Status](https://img.shields.io/badge/Status-Production--Ready-success.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-7%20passed-brightgreen.svg)](#)
+[![Status](https://img.shields.io/badge/Status-Active_Utility-blue.svg)](#)
 
-> **Auditeur & Splitter de Fichiers Lourds pour LLM & Coding Agents**  
-> Traque les fichiers dépassant le budget de lignes (seuil d'alerte > 250, critique > 350 lignes) et génère des plans de refactorisation modulaires automatiques en sous-packages propres.
+> **Auditeur & Générateur de Blueprints Modulaires pour LLM & Coding Agents**  
+> Traque les fichiers dépassant le budget de lignes (seuil d'alerte > 250, critique > 350 lignes) et génère des plans de découpage modulaire structurés (blueprints d'architecture sans altération destructive de code).
 
 ---
 
 ## 1. Carte d'Identité & Rôle Métier
 
-| Champ Stratégique | Valeur Officielle |
+| Propriété | Description |
 | :--- | :--- |
 | **Composant Officiel** | `mcp-10-code-splitter-auditor` |
-| **Licence** | **MIT Open-Source** |
-| **Compatibilité Clients** | **Cursor, Claude Code, VS Code, Claude Desktop, Antigravity** |
+| **Licence** | **MIT Open-Source** (usage commercial et personnel libre) |
+| **Environnement** | Python 3.10+ (Windows, macOS, Linux) |
+| **Clients Supportés & Testés** | **Cursor**, **VS Code**, **Claude Desktop**, **Claude Code CLI** |
 | **Architecture** | **Clean Architecture Tri-Canal (STDIO / CLI / SDK In-Process)** |
 | **Spécification MCP** | **JSON-RPC 2.0 (Cycle officiel 2025-11-25)** |
 
@@ -26,7 +28,7 @@
 ## 2. Guide d'Installation Multi-Clients
 
 ### Option A : Install with your AI Coding Agent (Recommandée)
-Copiez-collez ce prompt prêt à l'emploi dans votre agent IA (Cursor, Claude Code, Windsurf, VS Code Copilot) :
+Copiez-collez ce prompt prêt à l'emploi dans votre agent IA (Cursor Agent, Claude Code, VS Code Copilot) :
 
 ```text
 Tu es mon ingénieur d'intégration. Configure le serveur MCP depuis ce dépôt :
@@ -44,28 +46,41 @@ Tu es mon ingénieur d'intégration. Configure le serveur MCP depuis ce dépôt 
 Exécutez simplement le script `install.py` à la racine du dépôt :
 
 ```bash
+# Installation automatique tous clients détectés :
 python install.py
+
+# Ou installation ciblée selon votre environnement :
+python install.py --client cursor   # Configure ~/.cursor/mcp.json (clé "mcpServers")
+python install.py --client vscode   # Configure .vscode/mcp.json (clé officielle "servers")
+python install.py --client claude   # Configure Claude Desktop et enregistre via claude mcp add
+python install.py --client all      # Auto-détection et configuration universelle
 ```
 
-Options ciblées par client :
-- `python install.py --client cursor` : injecte dans `~/.cursor/mcp.json` (clé `mcpServers`).
-- `python install.py --client vscode` : configure `.vscode/mcp.json` (clé officielle `servers`).
-- `python install.py --client claude` : enregistre via `claude mcp add` et configure Claude Desktop.
-- `python install.py --client all` : auto-détection et configuration universelle.
+#### Sécurité et Résilience de l'Installateur :
+- **Vérification stricte de `pip install`** : toute anomalie de dépendances bloque l'installation avec code d'erreur explicite.
+- **Protection anti-corruption JSON** : si un fichier de configuration existant est syntaxiquement invalide, l'installateur génère une copie de sauvegarde `.corrupted.bak` et **refuse formellement d'écraser le fichier**.
+- **Préservation intégrale** : tous vos serveurs MCP et configurations existantes sont conservés sans perte.
 
 ---
 
 ### Option C : Installation Manuelle Développeur
 ```bash
+# 1. Cloner et installer en mode éditable
+git clone https://github.com/snorbik-ai/mcp-10-code-splitter-auditor.git
+cd mcp-10-code-splitter-auditor
 pip install -e .
+
+# 2. Exécuter la suite de tests unitaires
+pytest
 ```
 
 ---
 
-## 3. Configuration Manuelle (Cursor, Antigravity, Claude Desktop)
+## 3. Configuration Manuelle des Clients
 
-Si vous préférez déclarer manuellement ce serveur dans votre fichier `.cursor/mcp.json` ou `mcp_config.json`, ajoutez le bloc suivant :
+Si vous préférez déclarer manuellement ce serveur dans votre configuration :
 
+#### Pour Cursor (`~/.cursor/mcp.json`) & Claude Desktop (`claude_desktop_config.json`) :
 ```json
 {
   "mcpServers": {
@@ -74,6 +89,19 @@ Si vous préférez déclarer manuellement ce serveur dans votre fichier `.cursor
       "args": ["canal_mcp/mcp_server.py"],
       "env": { "PYTHONIOENCODING": "utf-8" },
       "type": "stdio"
+    }
+  }
+}
+```
+
+#### Pour VS Code (`.vscode/mcp.json` - Spécification Officielle VS Code) :
+```json
+{
+  "servers": {
+    "mcp-10-code-splitter-auditor": {
+      "command": "python",
+      "args": ["canal_mcp/mcp_server.py"],
+      "env": { "PYTHONIOENCODING": "utf-8" }
     }
   }
 }
@@ -88,39 +116,40 @@ Ce composant expose des outils déterministes prêts à être invoqués par un m
 | Nom de l'Outil (`tool`) | Rôle & Fonction Technique | Déclencheur d'Action (*Quand l'IA DOIT-ELLE l'appeler ?*) | Paramètres Requis | Sortie Retournée |
 | :--- | :--- | :--- | :--- | :--- |
 | `audit_code_weight` | Scanne récursivement les fichiers sources (`.ts`, `.tsx`, `.js`, `.py`) sans consommer de tokens LLM.<br>Convention configurable :<br>• `<= 250 lignes` : Conforme<br>• `251 à 350 lignes` : Alerte (Warning)<br>• `> 350 lignes` : Critique | **Lors de l'audit de qualité ou avant de clore une tâche de développement.** | `target_dir (str, optionnel, défaut: ".")`<br>`warn_threshold (int, défaut: 250)`<br>`critical_threshold (int, défaut: 350)` | JSON DTO : total fichiers scannés, répartition conformes/alertes/critiques, durée d'exécution et top des fichiers lourds. |
-| `generate_split_blueprint` | Analyse syntaxique des déclarations et symboles (classes, fonctions, interfaces TypeScript, constantes) pour générer un plan de découpage modulaire exemplaire (React partials + Hook contrôleur ou modules de données avec barrel export). | **Dès qu'un fichier critique (> 350 lignes) est détecté.** | `file_path (str, requis)` | Plan d'architecture découpée (arborescence cible, symboles réels extraits, squelettes de code et barrel export). |
+| `generate_split_blueprint` | Analyse syntaxique des déclarations et symboles (classes, fonctions, interfaces TypeScript, constantes) pour générer un plan de découpage modulaire structuré (React partials + Hook contrôleur ou modules de données avec barrel export). | **Dès qu'un fichier critique (> 350 lignes) est détecté.** | `file_path (str, requis)` | Plan d'architecture découpée (arborescence cible, symboles réels extraits, squelettes de code et barrel export). |
 
 ---
 
 ## 5. Performances & Périmètre Mesurés en Conditions Réelles
 
-Mesuré sur banc d'essai de production e-commerce représentatif (`frontend/src`) :
+Mesuré sur banc d'essai local (environnement Windows 11 / Python 3.12 sur un projet réel) :
 - **Périmètre du projet audité** : **434 fichiers totaux**
   - **76 fichiers** archivés sous `_archive` (exclus automatiquement par convention d'audit).
   - **358 fichiers sources actifs** audités (`.ts`, `.tsx`).
-- **Temps de scan** : **6,2 s** au démarrage à froid, **~0,15 s** à chaud (moyenne de 5 scans répétés).
-- **Génération du blueprint modulaire** : **~425 ms** (avec extraction des vraies interfaces et constantes).
+- **Temps de scan récursif AST** : **~0,15 s** à chaud (moyenne de 5 scans répétés).
+- **Génération du blueprint modulaire** : **~425 ms** (avec extraction des interfaces et constantes).
 - **Empreinte token LLM** : **0 token** (calcul déterministe local sans appel API externe).
+- **Suite de tests unitaires (`pytest`)** : **7 tests passés à 100%** en **0,90 s**.
 
 ---
 
 ## 6. Cycle de Vie Protocolaire MCP Standard
 
 Le serveur stdio implémente l'intégralité du cycle de vie MCP officiel (JSON-RPC 2.0) :
-- `initialize` (négociation des versions et des capacités `tools`).
-- `notifications/initialized` (accepté silencieusement sans réponse conformément à la norme).
-- `ping` (vérification de connectivité).
-- `tools/list` et `tools/call` (exécution déterministe).
+- Handshake `initialize` (négociation des versions et des capacités `tools`).
+- Réception silencieuse de `notifications/initialized` (accepté sans émission de réponse parasite).
+- Requête `ping` (vérification de connectivité).
+- Découverte et invocation d'outils `tools/list` et `tools/call`.
 
 ---
 
-## 6. Exemples Concrets de Prompts Utilisateur
+## 7. Exemples Concrets de Prompts Utilisateur
 
 Voici 3 exemples réels de requêtes que vous pouvez poser directement dans le chat de Cursor ou Claude Code pour faire travailler cet outil :
 
-1. *« Lance audit_code_weight sur frontend/src pour trouver tous les fichiers qui dépassent 350 lignes. »*
-2. *« Génère un plan de découpage modulaire avec generate_split_blueprint pour RawGlassRailingCatalog.ts. »*
-3. *« Vérifie que la Règle #5 de budget de lignes est respectée sur l'ensemble de mes composants. »*
+1. *« Lance audit_code_weight sur mon dossier src pour identifier les fichiers dépassant 350 lignes. »*
+2. *« Génère un blueprint de découpage modulaire avec generate_split_blueprint pour mon composant volumineux. »*
+3. *« Vérifie que le budget maximal de 350 lignes par fichier est respecté sur l'ensemble de mon code source. »*
 
 ---
 

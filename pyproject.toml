@@ -4,11 +4,11 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mcp-10-code-splitter-auditor"
-version = "1.0.0"
-description = "L'auditeur de budget de lignes qui traque les fichiers de plus de 350 lignes et génère des plans de découpage modulaires automatiques en sous-packages propres."
+version = "0.1.3"
+description = "Auditeur de budget de lignes et générateur de plans de découpage modulaires pour serveurs MCP."
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "Proprietary / SNORBIK AI" }
+license = { text = "MIT" }
 authors = [
     { name = "Snorbik AI Engineering", email = "engineering@snorbik.ai" }
 ]
@@ -18,4 +18,7 @@ dependencies = [
 ]
 
 [tool.setuptools]
-packages = { find = { where = ["."], exclude = ["tests*", "docs*"] } }
+packages = ["core", "canal_mcp", "canal_sdk_cli"]
+
+[project.scripts]
+splitter-cli = "canal_sdk_cli.cli:main"
