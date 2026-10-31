@@ -4,7 +4,7 @@
 [![Protocol](https://img.shields.io/badge/MCP_Protocol-2025--11--25-blue.svg)](#)
 [![Architecture](https://img.shields.io/badge/Architecture-Hybride_Tri--Canal-teal.svg)](#)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](#)
-[![Tests](https://img.shields.io/badge/Tests-7%20passed-brightgreen.svg)](#)
+[![Tests](https://img.shields.io/badge/Tests-7%2F7%20passed-brightgreen.svg)](#)
 [![Status](https://img.shields.io/badge/Status-Active_Utility-blue.svg)](#)
 
 > **Auditeur & Générateur de Blueprints Modulaires pour LLM & Coding Agents**  
@@ -116,20 +116,17 @@ Ce composant expose des outils déterministes prêts à être invoqués par un m
 | Nom de l'Outil (`tool`) | Rôle & Fonction Technique | Déclencheur d'Action (*Quand l'IA DOIT-ELLE l'appeler ?*) | Paramètres Requis | Sortie Retournée |
 | :--- | :--- | :--- | :--- | :--- |
 | `audit_code_weight` | Scanne récursivement les fichiers sources (`.ts`, `.tsx`, `.js`, `.py`) sans consommer de tokens LLM.<br>Convention configurable :<br>• `<= 250 lignes` : Conforme<br>• `251 à 350 lignes` : Alerte (Warning)<br>• `> 350 lignes` : Critique | **Lors de l'audit de qualité ou avant de clore une tâche de développement.** | `target_dir (str, optionnel, défaut: ".")`<br>`warn_threshold (int, défaut: 250)`<br>`critical_threshold (int, défaut: 350)` | JSON DTO : total fichiers scannés, répartition conformes/alertes/critiques, durée d'exécution et top des fichiers lourds. |
-| `generate_split_blueprint` | Analyse syntaxique des déclarations et symboles (classes, fonctions, interfaces TypeScript, constantes) pour générer un plan de découpage modulaire structuré (React partials + Hook contrôleur ou modules de données avec barrel export). | **Dès qu'un fichier critique (> 350 lignes) est détecté.** | `file_path (str, requis)` | Plan d'architecture découpée (arborescence cible, symboles réels extraits, squelettes de code et barrel export). |
+| `generate_split_blueprint` | Extraction ciblée des déclarations TypeScript / JavaScript / Python (`interface`, `type`, `const`, `function`, `class`) pour construire un blueprint de refactorisation propre (découpage modulaire proposé en partials et barrel exports, sans modification directe destructive des fichiers). | **Dès qu'un fichier critique (> 350 lignes) est détecté.** | `file_path (str, requis)` | Plan d'architecture découpée (arborescence cible, symboles réels extraits, squelettes de code et barrel export). |
 
 ---
 
-## 5. Performances & Périmètre Mesurés en Conditions Réelles
+## 5. Performances Mesurées en Conditions Réelles
 
-Mesuré sur banc d'essai local (environnement Windows 11 / Python 3.12 sur un projet réel) :
-- **Périmètre du projet audité** : **434 fichiers totaux**
-  - **76 fichiers** archivés sous `_archive` (exclus automatiquement par convention d'audit).
-  - **358 fichiers sources actifs** audités (`.ts`, `.tsx`).
-- **Temps de scan récursif AST** : **~0,15 s** à chaud (moyenne de 5 scans répétés).
-- **Génération du blueprint modulaire** : **~425 ms** (avec extraction des interfaces et constantes).
+Mesuré sur banc d'essai local (environnement Windows 11 / Python 3.12) :
+- **Audit de lignes (`audit_code_weight`)** : **~117 ms** pour analyser ~350 fichiers sources (parcours local du système de fichiers).
+- **Génération de blueprint (`generate_split_blueprint`)** : **~11 ms** à chaud en mémoire vive (~425 ms lors du premier appel à froid avec chargement initial des modules).
 - **Empreinte token LLM** : **0 token** (calcul déterministe local sans appel API externe).
-- **Suite de tests unitaires (`pytest`)** : **7 tests passés à 100%** en **0,90 s**.
+- **Suite de tests unitaires (`pytest`)** : **7/7 tests passés à 100%** en **0,90 s**.
 
 ---
 
