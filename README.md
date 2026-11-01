@@ -1,5 +1,7 @@
 # mcp-10-code-splitter-auditor
 
+![MCP #10 Code Splitter Auditor](assets/banner.png)
+
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB.svg?logo=python&logoColor=white)](#)
 [![Protocol](https://img.shields.io/badge/MCP_Protocol-2025--11--25-blue.svg)](#)
 [![Architecture](https://img.shields.io/badge/Architecture-Hybride_Tri--Canal-teal.svg)](#)
@@ -140,13 +142,62 @@ Le serveur stdio implémente l'intégralité du cycle de vie MCP officiel (JSON-
 
 ---
 
-## 7. Exemples Concrets de Prompts Utilisateur
+## 7. Comment Utiliser ce Serveur MCP avec votre Agent IA (Cursor, Claude Code, VS Code)
 
-Voici 3 exemples réels de requêtes que vous pouvez poser directement dans le chat de Cursor ou Claude Code pour faire travailler cet outil :
+Une fois le serveur installé via `python install.py --client cursor`, votre client IA reçoit automatiquement la déclaration des outils (`tools/list`). Deux modes d'interaction sont possibles :
 
-1. *« Lance audit_code_weight sur mon dossier src pour identifier les fichiers dépassant 350 lignes. »*
-2. *« Génère un blueprint de découpage modulaire avec generate_split_blueprint pour mon composant volumineux. »*
-3. *« Vérifie que le budget maximal de 350 lignes par fichier est respecté sur l'ensemble de mon code source. »*
+### Option A : En Langage Naturel (L'Agent Déclenche l'Outil Tout Seul)
+
+Vous n'avez pas besoin de mémoriser le nom exact des fonctions. Formulez simplement votre besoin en français ou en anglais dans le chat de votre éditeur :
+
+> *« Peux-tu analyser la structure de mon projet et me signaler si certains fichiers sont devenus trop lourds et risquent de saturer ton contexte ? »*
+
+**Ce qui se produit en arrière-plan dans Cursor ou Claude Code :**
+1. L'agent détecte qu'il dispose de la capacité `audit_code_weight`.
+2. Il déclenche silencieusement l'outil en local (sans appel API externe).
+3. Il analyse le retour JSON et vous répond avec une synthèse claire :
+   > *« J'ai analysé 348 fichiers sources en 117 ms. 347 fichiers sont conformes, mais `src/components/DashboardPanel.tsx` atteint 540 lignes (seuil critique : > 350 lignes). Souhaites-tu que je prépare un blueprint de refactorisation ? »*
+
+---
+
+### Option B : Contrôle Direct par Commandes Spécifiques
+
+Si vous souhaitez piloter précisément le workflow de refactorisation :
+
+1. **Étape 1 — Audit préliminaire :**
+   > *« Exécute `audit_code_weight` sur le répertoire `src/` et affiche les fichiers critiques. »*
+
+2. **Étape 2 — Génération du plan d'architecture (Blueprint) :**
+   > *« Lance `generate_split_blueprint` sur `src/components/DashboardPanel.tsx` et présente-moi l'arborescence proposée. »*
+
+   L'agent extrait les interfaces, composants et hooks, et vous affiche le plan modulaire :
+   ```text
+   📁 src/components/dashboard-panel/
+   │── index.ts                     ──► Point d'entrée barrel export
+   │── useDashboardController.ts    ──► Hook isolant logique métier et états
+   │── DashboardPanel.tsx           ──► Orchestrateur d'affichage allégé (~90 lignes)
+   └── 📁 partials/
+       ├── MetricsGridPartial.tsx   ──► Sous-bloc atomique (< 150 lignes)
+       └── ChartAnalyticsPartial.tsx──► Sous-bloc atomique (< 150 lignes)
+   ```
+
+3. **Étape 3 — Validation et application supervisée :**
+   > *« Ce plan me convient. Applique ce blueprint pour découper le composant, préserve les signatures d'import via index.ts, puis relance `audit_code_weight` et les tests. »*
+
+---
+
+### 💡 Aperçu Visuel dans le Chat de votre Éditeur
+
+Lors de l'appel d'un outil MCP, une bulle d'exécution apparaît directement dans Cursor ou Claude Code :
+
+```text
+┌────────────────────────────────────────────────────────┐
+│ ⚙️ Tool call: audit_code_weight(target_dir="src")       │
+│ Status: Success (117 ms)                                │
+│ Output: 1 critical file found: DashboardPanel.tsx (540) │
+└────────────────────────────────────────────────────────┘
+```
+L'outil ne modifie jamais votre code de manière destructive : **il propose une structure d'ingénierie (`blueprint`), et le développeur valide chaque étape.**
 
 ---
 
