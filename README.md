@@ -144,6 +144,8 @@ Le serveur stdio implémente l'intégralité du cycle de vie MCP officiel (JSON-
 
 ## 7. Comment Utiliser ce Serveur MCP avec votre Agent IA (Cursor, Claude Code, VS Code)
 
+![A Real Example: From a 540-line Monster to a Clean Modular Structure](assets/workflow_example.png)
+
 Une fois le serveur installé via `python install.py --client cursor`, votre client IA reçoit automatiquement la déclaration des outils (`tools/list`). Deux modes d'interaction sont possibles :
 
 ### Option A : En Langage Naturel (L'Agent Déclenche l'Outil Tout Seul)
